@@ -9,6 +9,13 @@ class Session
     const COUCHBASE = 'couchbase';
     const MEMCACHED = 'memcached';
 
+    private $container;
+
+    /**
+     * @var \Zend\Session\SessionManager
+     */
+    private $manager;
+
     /**
      * @var array
      */
@@ -19,14 +26,40 @@ class Session
      */
     private $domainName;
 
-
+    /**
+     * @param array $options
+     */
     public function __construct(array $options)
     {
+        $this->container  = new Container(__CLASS__);
         $this->domainName = null;
         $this->options    = $options;
         $this->setSavePath();
     }
 
+    /**
+     * @return void
+     */
+    public function destroy()
+    {
+        $this->manager->destroy();
+    }
+
+    /**
+     * @param string $key
+     * @param mixed $defaultValue
+     * @return mixed
+     */
+    public function get($key, $defaultValue = null)
+    {
+        return $this->container->offsetExists($key)
+            ? $this->container->offsetGet($key)
+            : ($defaultValue === null ? null : $defaultValue);
+    }
+
+    /**
+     * @return string
+     */
     public function getDomainName()
     {
         return $this->domainName === null
@@ -34,24 +67,64 @@ class Session
             : $this->domainName;
     }
 
+    /**
+     * @param string $key
+     * @return bool
+     */
+    public function has($key)
+    {
+        return $this->container->offsetExists($key);
+    }
+
+    /**
+     * @param string $key
+     * @return void
+     */
+    public function remove($key)
+    {
+        $this->container->offsetUnset($key);
+    }
+
+    /**
+     * @param string $key
+     * @param mixed $value
+     * @return void
+     */
+    public function set($key, $value)
+    {
+        $this->container->offsetSet($key, $value);
+    }
+
+    /**
+     * @param string $domainName
+     * @return \G4\Session\Session
+     */
     public function setDomainName($domainName)
     {
         $this->domainName = $domainName;
         return $this;
     }
 
+    /**
+     * @return \G4\Session\Session
+     */
     public function start()
     {
         session_set_cookie_params($this->getLifetime(), '/', $this->getDomainName());
 
-        $manager = new \Zend\Session\SessionManager($this->getConfig());
-        $manager
+        $this->manager = new \Zend\Session\SessionManager($this->getConfig());
+        $this->manager
             ->setSaveHandler($this->getSaveHandler())
             ->setStorage(new \Zend\Session\Storage\SessionArrayStorage())
             ->start();
-        \Zend\Session\Container::setDefaultManager($manager);
+        \Zend\Session\Container::setDefaultManager($this->manager);
+
+        return $this;
     }
 
+    /**
+     * @return \Zend\Session\Config\StandardConfig
+     */
     private function getConfig()
     {
         $config = new \Zend\Session\Config\StandardConfig();
@@ -61,6 +134,9 @@ class Session
         return $config;
     }
 
+    /**
+     * @return int
+     */
     private function getLifetime()
     {
         return isset($this->options['adapter']['options']['lifetime'])
@@ -68,6 +144,9 @@ class Session
             : 0;
     }
 
+    /**
+     * @return mixed
+     */
     private function getSaveHandler()
     {
         return $this->getOptions()['adapter']['name'] === self::COUCHBASE
@@ -76,6 +155,9 @@ class Session
     }
 
     // @todo: Drasko: write our own memcached adapter!
+    /**
+     * @return array:
+     */
     private function getOptions()
     {
         if ($this->options['adapter']['name'] === self::MEMCACHED) {
@@ -88,11 +170,17 @@ class Session
         return $this->options;
     }
 
+    /**
+     * @return \Zend\Cache\Storage\StorageInterface
+     */
     private function getStorage()
     {
         return \Zend\Cache\StorageFactory::factory($this->getOptions());
     }
 
+    /**
+     * @return void
+     */
     private function setSavePath()
     {
         if (!empty($this->options['save_path'])) {

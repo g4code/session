@@ -46,11 +46,29 @@ class Container
     }
 
     /**
+     * @param string $key
+     * @return void
+     */
+    public function offsetUnset($key)
+    {
+        $this->container->offsetUnset($key);
+    }
+
+    /**
      * @return array
      */
     public function getData()
     {
         return $this->container->getArrayCopy();
+    }
+
+    /**
+     * @return boolean
+     */
+    public function hasData()
+    {
+        $data = $this->container->getArrayCopy();
+        return !empty($data);
     }
 
     /**
