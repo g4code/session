@@ -5,6 +5,12 @@ session
 
 ## Install
 
+Via Composer
+
+```sh
+composer require g4/gateway
+```
+
 ## Usage
 
 ## Development
