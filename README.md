@@ -8,7 +8,7 @@ session
 Via Composer
 
 ```sh
-composer require g4/gateway
+composer require g4/session
 ```
 
 ## Usage
