@@ -31,7 +31,6 @@ class Session
      */
     public function __construct(array $options)
     {
-        $this->container  = new Container(__CLASS__);
         $this->domainName = null;
         $this->options    = $options;
         $this->setSavePath();
@@ -118,6 +117,8 @@ class Session
             ->setStorage(new \Zend\Session\Storage\SessionArrayStorage())
             ->start();
         \Zend\Session\Container::setDefaultManager($this->manager);
+
+        $this->container = new Container(__CLASS__);
 
         return $this;
     }
