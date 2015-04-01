@@ -30,6 +30,7 @@
   },
   "require": {
     "php"                       : ">=5.4",
+    "g4/mcache"                 : "*",
     "zendframework/zend-cache"  : "2.3.*",
     "zendframework/zend-session": "2.3.*"
   }

@@ -6,7 +6,7 @@ class Couchbase implements \Zend\Session\SaveHandler\SaveHandlerInterface
 {
 
     /**
-     * @var \Couchbase
+     * @var \G4\Mcache\Mcache
      */
     private $couchbase;
 
@@ -22,7 +22,11 @@ class Couchbase implements \Zend\Session\SaveHandler\SaveHandlerInterface
     public function __construct(array $options)
     {
         $this->options   = $options;
-        $this->couchbase = new \Couchbase("{$this->options['host']}:{$this->options['port']}", '', '', $this->options['bucket']);
+        $this->couchbase = \G4\Mcache\McacheFactory::createInstance(
+            \G4\Mcache\McacheFactory::DRIVER_COUCHBASE,
+            $this->options,
+            __CLASS__
+        );
     }
 
     /**
