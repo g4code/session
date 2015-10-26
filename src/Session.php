@@ -41,7 +41,12 @@ class Session
      */
     public function destroy()
     {
-        $this->manager->destroy();
+        $this->manager->destroy([
+            'send_expire_cookie' => true,
+            'clear_storage'      => true,
+        ]);
+        $params = session_get_cookie_params();
+        setcookie(session_name(), '', 0, $params['path'], $params['domain'], $params['secure'], isset($params['httponly']));
     }
 
     /**

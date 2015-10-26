@@ -12,3 +12,5 @@ vendor
 .buildpath
 .project
 .settings
+.idea/*
+.idea/dictionaries/zeljko.xml
