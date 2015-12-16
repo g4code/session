@@ -175,7 +175,9 @@ class Session
                 $this->options['adapter']['options']['persistent']
             );
         }
-        $this->options['adapter']['options']['servers'] = array_filter($this->options['adapter']['options']['servers']);
+        if (is_array($this->options['adapter']['options']['servers'])) {
+            $this->options['adapter']['options']['servers'] = array_filter($this->options['adapter']['options']['servers']);
+        }
         return $this->options;
     }
 
