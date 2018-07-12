@@ -23,7 +23,10 @@
     }
   ],
   "autoload": {
-    "psr-4": {"G4\\Session\\": "src/"}
+    "psr-4": {
+      "G4\\Session\\": "src/",
+      "G4\\SessionTest\\": "tests/unit/src/"
+    }
   },
   "require": {
     "php"                       : ">=5.4",

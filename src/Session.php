@@ -3,6 +3,8 @@
 namespace G4\Session;
 
 
+use G4\Session\Exception\MissingDomainNameException;
+
 class Session
 {
 
@@ -67,6 +69,9 @@ class Session
      */
     public function getDomainName()
     {
+        if ($this->domainName === null && empty($_SERVER['HTTP_HOST'])) {
+            throw new MissingDomainNameException();
+        }
         return $this->domainName === null
             ? $_SERVER['HTTP_HOST']
             : $this->domainName;
