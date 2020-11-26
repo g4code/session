@@ -47,13 +47,13 @@ class Couchbase implements \Zend\Session\SaveHandler\SaveHandlerInterface
 
     /**
      * @param string $id
-     * @return mixed
+     * @return string
      */
     public function read($id)
     {
         return $this->mcache
             ->key($id)
-            ->get();
+            ->get() ?: '';
     }
 
     /**
