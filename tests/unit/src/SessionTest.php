@@ -1,21 +1,15 @@
 <?php
 
-
-namespace G4\SessionTest;
-
-
 use G4\Session\Exception\MissingDomainNameException;
 use G4\Session\Session;
 
-
-class SessionTest extends \PHPUnit_Framework_TestCase
+class SessionTest extends PHPUnit\Framework\TestCase
 {
 
     /**
      * @var Session
      */
     private $session;
-
 
     public function testSetDomainName()
     {
@@ -32,18 +26,17 @@ class SessionTest extends \PHPUnit_Framework_TestCase
     public function testGetDomainNameException()
     {
         $this->expectException(MissingDomainNameException::class);
-
         $this->session->getDomainName();
     }
 
-
-    protected function setUp()
+    protected function setUp(): void
     {
         $this->session = new Session([]);
     }
 
-    protected function tearDown()
+    protected function tearDown(): void
     {
         $this->session = null;
+        $_SERVER['HTTP_HOST'] = null;
     }
 }
