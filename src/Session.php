@@ -2,19 +2,26 @@
 
 namespace G4\Session;
 
-
 use G4\Session\Exception\MissingDomainNameException;
+use G4\Session\SaveHandler\Couchbase;
+use Laminas\Cache\Storage\StorageInterface;
+use Laminas\Cache\StorageFactory;
+use Laminas\Session\Config\StandardConfig;
+use Laminas\Session\Container as LaminasContainer;
+use Laminas\Session\SaveHandler\Cache;
+use Laminas\Session\SessionManager;
+use Laminas\Session\Storage\SessionArrayStorage;
 
 class Session
 {
 
-    const COUCHBASE = 'couchbase';
-    const MEMCACHED = 'memcached';
+    private const COUCHBASE = 'couchbase';
+    private const MEMCACHED = 'memcached';
 
     private $container;
 
     /**
-     * @var \Zend\Session\SessionManager
+     * @var SessionManager
      */
     private $manager;
 
@@ -33,22 +40,29 @@ class Session
      */
     public function __construct(array $options)
     {
-        $this->domainName = null;
-        $this->options    = $options;
+        $this->options = $options;
         $this->setSavePath();
     }
 
     /**
      * @return void
      */
-    public function destroy()
+    public function destroy(): void
     {
         $this->manager->destroy([
             'send_expire_cookie' => true,
             'clear_storage'      => true,
         ]);
         $params = session_get_cookie_params();
-        setcookie(session_name(), '', 0, $params['path'], $params['domain'], $params['secure'], isset($params['httponly']));
+        setcookie(
+            session_name(),
+            '',
+            0,
+            $params['path'],
+            $params['domain'],
+            $params['secure'],
+            isset($params['httponly'])
+        );
     }
 
     /**
@@ -60,27 +74,26 @@ class Session
     {
         return $this->container->offsetExists($key)
             ? $this->container->offsetGet($key)
-            : ($defaultValue === null ? null : $defaultValue);
+            : $defaultValue;
     }
 
     /**
      * @return string
+     * @throws MissingDomainNameException
      */
-    public function getDomainName()
+    public function getDomainName(): string
     {
         if ($this->domainName === null && empty($_SERVER['HTTP_HOST'])) {
             throw new MissingDomainNameException();
         }
-        return $this->domainName === null
-            ? $_SERVER['HTTP_HOST']
-            : $this->domainName;
+        return $this->domainName ?? $_SERVER['HTTP_HOST'];
     }
 
     /**
      * @param string $key
      * @return bool
      */
-    public function has($key)
+    public function has($key): bool
     {
         return $this->container->offsetExists($key);
     }
@@ -89,7 +102,7 @@ class Session
      * @param string $key
      * @return void
      */
-    public function remove($key)
+    public function remove($key): void
     {
         $this->container->offsetUnset($key);
     }
@@ -99,34 +112,35 @@ class Session
      * @param mixed $value
      * @return void
      */
-    public function set($key, $value)
+    public function set($key, $value): void
     {
         $this->container->offsetSet($key, $value);
     }
 
     /**
      * @param string $domainName
-     * @return \G4\Session\Session
+     * @return Session
      */
-    public function setDomainName($domainName)
+    public function setDomainName($domainName): Session
     {
         $this->domainName = $domainName;
         return $this;
     }
 
     /**
-     * @return \G4\Session\Session
+     * @return Session
+     * @throws MissingDomainNameException
      */
-    public function start()
+    public function start(): Session
     {
         session_set_cookie_params($this->getLifetime(), '/', $this->getDomainName());
 
-        $this->manager = new \Zend\Session\SessionManager($this->getConfig());
+        $this->manager = new SessionManager($this->getConfig());
         $this->manager
             ->setSaveHandler($this->getSaveHandler())
-            ->setStorage(new \Zend\Session\Storage\SessionArrayStorage())
+            ->setStorage(new SessionArrayStorage())
             ->start();
-        \Zend\Session\Container::setDefaultManager($this->manager);
+        LaminasContainer::setDefaultManager($this->manager);
 
         $this->container = new Container(__CLASS__);
 
@@ -134,11 +148,11 @@ class Session
     }
 
     /**
-     * @return \Zend\Session\Config\StandardConfig
+     * @return StandardConfig
      */
-    private function getConfig()
+    private function getConfig(): StandardConfig
     {
-        $config = new \Zend\Session\Config\StandardConfig();
+        $config = new StandardConfig();
         $config->setOptions([
             'save_path' => $this->options['save_path'],
         ]);
@@ -148,28 +162,27 @@ class Session
     /**
      * @return int
      */
-    private function getLifetime()
+    private function getLifetime(): int
     {
-        return isset($this->options['adapter']['options']['lifetime'])
-            ? $this->options['adapter']['options']['lifetime']
-            : 0;
+        return $this->options['adapter']['options']['lifetime'] ?? 0;
     }
 
     /**
-     * @return mixed
+     * @return Cache|Couchbase
+     * @throws \Exception
      */
     private function getSaveHandler()
     {
         return $this->getOptions()['adapter']['name'] === self::COUCHBASE
-            ? new \G4\Session\SaveHandler\Couchbase($this->getOptions()['adapter']['options'])
-            : new \Zend\Session\SaveHandler\Cache(\Zend\Cache\StorageFactory::factory($this->getOptions()));
+            ? new Couchbase($this->getOptions()['adapter']['options'])
+            : new Cache(StorageFactory::factory($this->getOptions()));
     }
 
     // @todo: Drasko: write our own memcached adapter!
     /**
      * @return array:
      */
-    private function getOptions()
+    private function getOptions(): array
     {
         if ($this->options['adapter']['name'] === self::MEMCACHED) {
             unset(
@@ -181,23 +194,24 @@ class Session
             );
         }
         if (is_array($this->options['adapter']['options']['servers'])) {
-            $this->options['adapter']['options']['servers'] = array_filter($this->options['adapter']['options']['servers']);
+            $this->options['adapter']['options']['servers'] =
+                array_filter($this->options['adapter']['options']['servers']);
         }
         return $this->options;
     }
 
     /**
-     * @return \Zend\Cache\Storage\StorageInterface
+     * @return StorageInterface
      */
-    private function getStorage()
+    private function getStorage(): StorageInterface
     {
-        return \Zend\Cache\StorageFactory::factory($this->getOptions());
+        return StorageFactory::factory($this->getOptions());
     }
 
     /**
      * @return void
      */
-    private function setSavePath()
+    private function setSavePath(): void
     {
         if (!empty($this->options['save_path'])) {
             session_save_path($this->options['save_path']);
