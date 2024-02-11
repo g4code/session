@@ -2,11 +2,13 @@
 
 namespace G4\Session;
 
+use Laminas\Session\Container as LaminasContainer;
+
 class Container
 {
 
     /**
-     * @var \Zend\Session\Container
+     * @var LaminasContainer
      */
     private $container;
 
@@ -15,14 +17,14 @@ class Container
      */
     public function __construct($name)
     {
-        $this->container = new \Zend\Session\Container($name);
+        $this->container = new LaminasContainer($name);
     }
 
     /**
      * @param string $key
      * @return boolean
      */
-    public function offsetExists($key)
+    public function offsetExists($key): bool
     {
         return $this->container->offsetExists($key);
     }
@@ -40,16 +42,16 @@ class Container
      * @param string $key
      * @param mixed $value
      */
-    public function offsetSet($key, $value)
+    public function offsetSet($key, $value): void
     {
-        return $this->container->offsetSet($key, $value);
+        $this->container->offsetSet($key, $value);
     }
 
     /**
      * @param string $key
      * @return void
      */
-    public function offsetUnset($key)
+    public function offsetUnset($key): void
     {
         $this->container->offsetUnset($key);
     }
@@ -57,7 +59,7 @@ class Container
     /**
      * @return array
      */
-    public function getData()
+    public function getData(): array
     {
         return $this->container->getArrayCopy();
     }
@@ -65,7 +67,7 @@ class Container
     /**
      * @return boolean
      */
-    public function hasData()
+    public function hasData(): bool
     {
         $data = $this->container->getArrayCopy();
         return !empty($data);
@@ -73,9 +75,9 @@ class Container
 
     /**
      * @param array $data
-     * @return \G4\Session\Container
+     * @return Container
      */
-    public function setData(array $data)
+    public function setData(array $data): Container
     {
         $this->container->exchangeArray($data);
         return $this;

@@ -2,11 +2,15 @@
 
 namespace G4\Session\SaveHandler;
 
-class Couchbase implements \Zend\Session\SaveHandler\SaveHandlerInterface
+use G4\Mcache\Mcache;
+use G4\Mcache\McacheFactory;
+use Laminas\Session\SaveHandler\SaveHandlerInterface;
+
+class Couchbase implements SaveHandlerInterface
 {
 
     /**
-     * @var \G4\Mcache\Mcache
+     * @var Mcache
      */
     private $mcache;
 
@@ -15,15 +19,15 @@ class Couchbase implements \Zend\Session\SaveHandler\SaveHandlerInterface
      */
     private $options;
 
-
     /**
      * @param array $options
+     * @throws \Exception
      */
     public function __construct(array $options)
     {
-        $this->options   = $options;
-        $this->mcache = \G4\Mcache\McacheFactory::createInstance(
-            \G4\Mcache\McacheFactory::DRIVER_COUCHBASE,
+        $this->options = $options;
+        $this->mcache  = McacheFactory::createInstance(
+            McacheFactory::DRIVER_COUCHBASE,
             $this->options,
             __CLASS__
         );
@@ -32,7 +36,7 @@ class Couchbase implements \Zend\Session\SaveHandler\SaveHandlerInterface
     /**
      * Unnecessary for couchbase
      */
-    public function open($savePath, $name)
+    public function open($savePath, $name): bool
     {
         return true;
     }
@@ -40,7 +44,7 @@ class Couchbase implements \Zend\Session\SaveHandler\SaveHandlerInterface
     /**
      * Unnecessary for couchbase
      */
-    public function close()
+    public function close(): bool
     {
         return true;
     }
@@ -49,7 +53,7 @@ class Couchbase implements \Zend\Session\SaveHandler\SaveHandlerInterface
      * @param string $id
      * @return string
      */
-    public function read($id)
+    public function read($id): string
     {
         return $this->mcache
             ->key($id)
@@ -61,13 +65,14 @@ class Couchbase implements \Zend\Session\SaveHandler\SaveHandlerInterface
      * @param string $data
      * @return bool
      */
-    public function write($id, $data)
+    public function write($id, $data): bool
     {
         $result = $this->mcache
             ->key($id)
             ->value($data)
             ->expiration($this->getLifetime())
             ->set();
+
         return !empty($result);
     }
 
@@ -75,7 +80,7 @@ class Couchbase implements \Zend\Session\SaveHandler\SaveHandlerInterface
      * @param string $id
      * @return bool
      */
-    public function destroy($id)
+    public function destroy($id): bool
     {
         return $this->mcache
             ->key($id)
@@ -85,7 +90,7 @@ class Couchbase implements \Zend\Session\SaveHandler\SaveHandlerInterface
     /**
      * Unnecessary for couchbase
      */
-    public function gc($maxlifetime)
+    public function gc($maxlifetime): bool
     {
         return true;
     }
@@ -93,7 +98,7 @@ class Couchbase implements \Zend\Session\SaveHandler\SaveHandlerInterface
     /**
      * @return int
      */
-    private function getLifetime()
+    private function getLifetime(): int
     {
         return isset($this->options['lifetime'])
             ? (int) $this->options['lifetime']

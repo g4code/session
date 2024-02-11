@@ -17,3 +17,6 @@ vendor
 
 tests/unit/coverage/*
 !tests/unit/coverage/.gitkeep
+
+.phpunit.result.cache
+tests/unit/.phpunit.result.cache
