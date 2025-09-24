@@ -31,8 +31,8 @@
   "require": {
     "php"                     : ">=7.3",
     "g4/mcache"               : "*",
-    "laminas/laminas-cache"   : "2.13.*",
-    "laminas/laminas-session" : "2.12.*"
+    "laminas/laminas-cache"   : "*",
+    "laminas/laminas-session" : "*"
   },
   "require-dev": {
     "phpunit/phpunit"           : "9.*",
