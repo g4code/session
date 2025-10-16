@@ -7,6 +7,7 @@
 *.gz
 
 composer.phar
+composer.lock
 vendor
 
 .buildpath
@@ -20,3 +21,4 @@ tests/unit/coverage/*
 
 .phpunit.result.cache
 tests/unit/.phpunit.result.cache
+.aider*
