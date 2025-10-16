@@ -29,10 +29,12 @@
     }
   },
   "require": {
-    "php"                     : ">=7.3",
+    "php"                     : ">=8.3",
     "g4/mcache"               : "*",
-    "laminas/laminas-cache"   : "*",
-    "laminas/laminas-session" : "*"
+    "laminas/laminas-cache"   : "^3.12.0",
+    "laminas/laminas-session" : "^2.17.0",
+    "laminas/laminas-cache-storage-deprecated-factory": "^1.0",
+    "laminas/laminas-cache-storage-adapter-memcached": "^2.5.0|^3.0.0"
   },
   "require-dev": {
     "phpunit/phpunit"           : "9.*",

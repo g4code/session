@@ -175,7 +175,7 @@ class Session
     {
         return $this->getOptions()['adapter']['name'] === self::COUCHBASE
             ? new Couchbase($this->getOptions()['adapter']['options'])
-            : new Cache(StorageFactory::factory($this->getOptions()));
+            : new Cache(\Laminas\Cache\StorageFactory::factory($this->getOptions()));
     }
 
     // @todo: Drasko: write our own memcached adapter!
