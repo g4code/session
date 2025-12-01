@@ -167,7 +167,7 @@ class Session
 
     public function cookieSameSite(string $value)
     {
-        $validValues = ['', 'None', 'Strict'];
+        $validValues = ['', 'Lax', 'Strict'];
         if (!in_array($value, $validValues)) {
             throw new \InvalidArgumentException('Invalid value for cookieSameSite');
         }
