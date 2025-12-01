@@ -90,9 +90,7 @@ class Session
         if ($this->domainName === null && empty($_SERVER['HTTP_HOST'])) {
             throw new MissingDomainNameException();
         }
-        return $this->domainName === null
-            ? $_SERVER['HTTP_HOST']
-            : $this->domainName;
+        return $this->domainName ?? $_SERVER['HTTP_HOST'];
     }
 
     /**
@@ -153,7 +151,7 @@ class Session
 
     public function cookieSameSite(string $value)
     {
-        $validValues = ['', 'None', 'Strict'];
+        $validValues = ['', 'Lax', 'Strict'];
         if (!in_array($value, $validValues)) {
             throw new \InvalidArgumentException('Invalid value for cookieSameSite');
         }
