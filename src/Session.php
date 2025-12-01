@@ -29,11 +29,30 @@ class Session
     private $domainName;
 
     /**
+     * @var string
+     */
+    private $cookiePath = '/';
+
+    /**
+     * @var bool
+     */
+    private $cookieHttpOnly = false;
+
+    /**
+     * @var bool
+     */
+    private $cookieSecure = false;
+
+    /**
+     * @var string
+     */
+    private $cookieSameSite = '';
+
+    /**
      * @param array $options
      */
     public function __construct(array $options)
     {
-        $this->domainName = null;
         $this->options    = $options;
         $this->setSavePath();
     }
@@ -114,12 +133,47 @@ class Session
         return $this;
     }
 
+    public function cookiePath(string $path)
+    {
+        $this->cookiePath = $path;
+        return $this;
+    }
+
+    public function cookieHttpOnly(bool $value)
+    {
+        $this->cookieHttpOnly = $value;
+        return $this;
+    }
+
+    public function cookieSecure(bool $value)
+    {
+        $this->cookieSecure = $value;
+        return $this;
+    }
+
+    public function cookieSameSite(string $value)
+    {
+        $validValues = ['', 'None', 'Strict'];
+        if (!in_array($value, $validValues)) {
+            throw new \InvalidArgumentException('Invalid value for cookieSameSite');
+        }
+        $this->cookieSameSite = $value;
+        return $this;
+    }
+
     /**
      * @return \G4\Session\Session
      */
     public function start()
     {
-        session_set_cookie_params($this->getLifetime(), '/', $this->getDomainName());
+        session_set_cookie_params([
+            'lifetime' => $this->getLifetime(),
+            'path' => $this->cookiePath,
+            'domain' => $this->getDomainName(),
+            'secure' => $this->cookieSecure,
+            'httponly' => $this->cookieHttpOnly,
+            'samesite' => $this->cookieSameSite,
+        ]);
 
         $this->manager = new \Zend\Session\SessionManager($this->getConfig());
         $this->manager
@@ -150,9 +204,7 @@ class Session
      */
     private function getLifetime()
     {
-        return isset($this->options['adapter']['options']['lifetime'])
-            ? $this->options['adapter']['options']['lifetime']
-            : 0;
+        return $this->options['adapter']['options']['lifetime'] ?? 0;
     }
 
     /**

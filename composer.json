@@ -29,7 +29,7 @@
     }
   },
   "require": {
-    "php"                       : ">=5.6",
+    "php"                       : "^7.3",
     "g4/mcache"                 : "*",
     "zendframework/zend-cache"  : "2.8.*",
     "zendframework/zend-session": "2.9.*"
