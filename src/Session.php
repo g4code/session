@@ -36,6 +36,26 @@ class Session
     private $domainName;
 
     /**
+     * @var string
+     */
+    private $cookiePath = '/';
+
+    /**
+     * @var bool
+     */
+    private $cookieHttpOnly = false;
+
+    /**
+     * @var bool
+     */
+    private $cookieSecure = false;
+
+    /**
+     * @var string
+     */
+    private $cookieSameSite = '';
+
+    /**
      * @param array $options
      */
     public function __construct(array $options)
@@ -127,13 +147,48 @@ class Session
         return $this;
     }
 
+    public function cookiePath(string $path)
+    {
+        $this->cookiePath = $path;
+        return $this;
+    }
+
+    public function cookieHttpOnly(bool $value)
+    {
+        $this->cookieHttpOnly = $value;
+        return $this;
+    }
+
+    public function cookieSecure(bool $value)
+    {
+        $this->cookieSecure = $value;
+        return $this;
+    }
+
+    public function cookieSameSite(string $value)
+    {
+        $validValues = ['', 'Lax', 'Strict'];
+        if (!in_array($value, $validValues)) {
+            throw new \InvalidArgumentException('Invalid value for cookieSameSite');
+        }
+        $this->cookieSameSite = $value;
+        return $this;
+    }
+
     /**
      * @return Session
      * @throws MissingDomainNameException
      */
     public function start(): Session
     {
-        session_set_cookie_params($this->getLifetime(), '/', $this->getDomainName());
+        session_set_cookie_params([
+            'lifetime' => $this->getLifetime(),
+            'path' => $this->cookiePath,
+            'domain' => $this->getDomainName(),
+            'secure' => $this->cookieSecure,
+            'httponly' => $this->cookieHttpOnly,
+            'samesite' => $this->cookieSameSite,
+        ]);
 
         $this->manager = new SessionManager($this->getConfig());
         $this->manager
