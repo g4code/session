@@ -227,7 +227,9 @@ class Session
                 $this->options['adapter']['options']['port'],
                 $this->options['adapter']['options']['bucket'],
                 $this->options['adapter']['options']['lifetime'],
-                $this->options['adapter']['options']['persistent']
+                $this->options['adapter']['options']['persistent'],
+                $this->options['adapter']['options']['tcp_keepalive'],
+                $this->options['adapter']['options']['dnssrv']
             );
         }
         if (is_array($this->options['adapter']['options']['servers'])) {

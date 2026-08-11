@@ -18,3 +18,4 @@ vendor
 
 tests/unit/coverage/*
 !tests/unit/coverage/.gitkeep
+tests/unit/.phpunit.result.cache
