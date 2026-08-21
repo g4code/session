@@ -351,6 +351,7 @@ class SessionTest extends TestCase
                     'persistent'      => true,
                     'tcp_keepalive'   => true,
                     'dnssrv'          => false,
+                    'timeout'         => 1000000,
                     'servers'         => ['server1', '', 'server2'],
                 ],
             ],
@@ -367,6 +368,7 @@ class SessionTest extends TestCase
         $this->assertArrayNotHasKey('persistent', $adapterOptions);
         $this->assertArrayNotHasKey('tcp_keepalive', $adapterOptions);
         $this->assertArrayNotHasKey('dnssrv', $adapterOptions);
+        $this->assertArrayNotHasKey('timeout', $adapterOptions);
         $this->assertCount(2, $adapterOptions['servers']);
         $this->assertContains('server1', $adapterOptions['servers']);
         $this->assertContains('server2', $adapterOptions['servers']);
