@@ -90,9 +90,9 @@ class Couchbase implements SaveHandlerInterface
     /**
      * Unnecessary for couchbase
      */
-    public function gc($maxlifetime): bool
+    public function gc(int $max_lifetime): int|false
     {
-        return true;
+        return 0;
     }
 
     /**
