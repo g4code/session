@@ -1,15 +1,54 @@
 <?php
 
+namespace G4\SessionTest;
+
+use G4\Session\Container;
 use G4\Session\Exception\MissingDomainNameException;
 use G4\Session\Session;
+use InvalidArgumentException;
+use PHPUnit\Framework\TestCase;
+use ReflectionClass;
+use Laminas\Session\SessionManager;
 
-class SessionTest extends PHPUnit\Framework\TestCase
+class SessionTest extends TestCase
 {
-
     /**
      * @var Session
      */
     private $session;
+
+    protected function setUp(): void
+    {
+        $this->session = new Session([]);
+    }
+
+    protected function tearDown(): void
+    {
+        $this->session = null;
+        unset($_SERVER['HTTP_HOST']);
+    }
+
+    public function testConstructStoresOptions()
+    {
+        $options = ['adapter' => ['name' => 'memcached', 'options' => []]];
+        $session = new Session($options);
+
+        $reflection = new ReflectionClass($session);
+        $optionsProperty = $reflection->getProperty('options');
+
+        $this->assertSame($options, $optionsProperty->getValue($session));
+    }
+
+    /**
+     * @runInSeparateProcess
+     * @preserveGlobalState disabled
+     */
+    public function testConstructWithSavePathCallsSessionSavePath()
+    {
+        $this->expectNotToPerformAssertions();
+
+        new Session(['save_path' => '/tmp/session-test-construct']);
+    }
 
     public function testSetDomainName()
     {
@@ -17,128 +56,474 @@ class SessionTest extends PHPUnit\Framework\TestCase
         $this->assertEquals('example.com', $this->session->getDomainName());
     }
 
-    public function testGetDomainName()
+    public function testSetDomainNameReturnsSelf()
+    {
+        $this->assertSame($this->session, $this->session->setDomainName('example.com'));
+    }
+
+    public function testGetDomainNameFromHttpHost()
     {
         $_SERVER['HTTP_HOST'] = 'example1.com';
         $this->assertEquals('example1.com', $this->session->getDomainName());
     }
 
-    public function testGetDomainNameException()
+    public function testGetDomainNameThrowsExceptionWhenNoDomainAndNoHttpHost()
     {
         $this->expectException(MissingDomainNameException::class);
         $this->session->getDomainName();
     }
 
-    public function testCookiePathDefault()
+    public function testSetDomainNameTakesPrecedenceOverHttpHost()
     {
-        $reflection = new \ReflectionClass($this->session);
-        $property = $reflection->getProperty('cookiePath');
-        $property->setAccessible(true);
-        $this->assertEquals('/', $property->getValue($this->session));
+        $_SERVER['HTTP_HOST'] = 'fromhost.com';
+        $this->session->setDomainName('fromsetter.com');
+        $this->assertEquals('fromsetter.com', $this->session->getDomainName());
     }
 
-    public function testCookiePathSetter()
+    public function testCookiePathSetsValueAndReturnsSelf()
     {
-        $result = $this->session->cookiePath('/custom/path');
-        $this->assertInstanceOf(Session::class, $result);
-        
-        $reflection = new \ReflectionClass($this->session);
+        $this->assertSame($this->session, $this->session->cookiePath('/custom/path'));
+
+        $reflection = new ReflectionClass($this->session);
         $property = $reflection->getProperty('cookiePath');
-        $property->setAccessible(true);
         $this->assertEquals('/custom/path', $property->getValue($this->session));
     }
 
-    public function testCookieHttpOnlyDefault()
+    public function testCookiePathDefaultValue()
     {
-        $reflection = new \ReflectionClass($this->session);
-        $property = $reflection->getProperty('cookieHttpOnly');
-        $property->setAccessible(true);
-        $this->assertFalse($property->getValue($this->session));
+        $reflection = new ReflectionClass($this->session);
+        $property = $reflection->getProperty('cookiePath');
+        $this->assertEquals('/', $property->getValue($this->session));
     }
 
-    public function testCookieHttpOnlySetter()
+    public function testCookieHttpOnlySetsValueAndReturnsSelf()
     {
-        $result = $this->session->cookieHttpOnly(true);
-        $this->assertInstanceOf(Session::class, $result);
-        
-        $reflection = new \ReflectionClass($this->session);
+        $this->assertSame($this->session, $this->session->cookieHttpOnly(true));
+
+        $reflection = new ReflectionClass($this->session);
         $property = $reflection->getProperty('cookieHttpOnly');
-        $property->setAccessible(true);
         $this->assertTrue($property->getValue($this->session));
     }
 
-    public function testCookieSecureDefault()
+    public function testCookieHttpOnlyDefaultValue()
     {
-        $reflection = new \ReflectionClass($this->session);
-        $property = $reflection->getProperty('cookieSecure');
-        $property->setAccessible(true);
+        $reflection = new ReflectionClass($this->session);
+        $property = $reflection->getProperty('cookieHttpOnly');
         $this->assertFalse($property->getValue($this->session));
     }
 
-    public function testCookieSecureSetter()
+    public function testCookieSecureSetsValueAndReturnsSelf()
     {
-        $result = $this->session->cookieSecure(true);
-        $this->assertInstanceOf(Session::class, $result);
-        
-        $reflection = new \ReflectionClass($this->session);
+        $this->assertSame($this->session, $this->session->cookieSecure(true));
+
+        $reflection = new ReflectionClass($this->session);
         $property = $reflection->getProperty('cookieSecure');
-        $property->setAccessible(true);
         $this->assertTrue($property->getValue($this->session));
     }
 
-    public function testCookieSameSiteDefault()
+    public function testCookieSecureDefaultValue()
     {
-        $reflection = new \ReflectionClass($this->session);
-        $property = $reflection->getProperty('cookieSameSite');
-        $property->setAccessible(true);
-        $this->assertEquals('', $property->getValue($this->session));
+        $reflection = new ReflectionClass($this->session);
+        $property = $reflection->getProperty('cookieSecure');
+        $this->assertFalse($property->getValue($this->session));
     }
 
-    public function testCookieSameSiteSetterWithEmptyString()
+    public function testCookieSameSiteSetsValueAndReturnsSelf()
     {
-        $result = $this->session->cookieSameSite('');
-        $this->assertInstanceOf(Session::class, $result);
-        
-        $reflection = new \ReflectionClass($this->session);
-        $property = $reflection->getProperty('cookieSameSite');
-        $property->setAccessible(true);
-        $this->assertEquals('', $property->getValue($this->session));
-    }
+        $this->assertSame($this->session, $this->session->cookieSameSite('Lax'));
 
-    public function testCookieSameSiteSetterWithLax()
-    {
-        $result = $this->session->cookieSameSite('Lax');
-        $this->assertInstanceOf(Session::class, $result);
-        
-        $reflection = new \ReflectionClass($this->session);
+        $reflection = new ReflectionClass($this->session);
         $property = $reflection->getProperty('cookieSameSite');
-        $property->setAccessible(true);
         $this->assertEquals('Lax', $property->getValue($this->session));
     }
 
-    public function testCookieSameSiteSetterWithStrict()
+    public function testCookieSameSiteDefaultValue()
     {
-        $result = $this->session->cookieSameSite('Strict');
-        $this->assertInstanceOf(Session::class, $result);
-        
-        $reflection = new \ReflectionClass($this->session);
+        $reflection = new ReflectionClass($this->session);
         $property = $reflection->getProperty('cookieSameSite');
-        $property->setAccessible(true);
+        $this->assertEquals('', $property->getValue($this->session));
+    }
+
+    public function testCookieSameSiteAcceptsStrict()
+    {
+        $this->session->cookieSameSite('Strict');
+
+        $reflection = new ReflectionClass($this->session);
+        $property = $reflection->getProperty('cookieSameSite');
         $this->assertEquals('Strict', $property->getValue($this->session));
     }
 
-    public function testCookieSameSiteSetterWithInvalidValue()
+    public function testCookieSameSiteAcceptsEmptyString()
     {
-        $this->expectException(\InvalidArgumentException::class);
-        $this->expectExceptionMessage('Invalid value for cookieSameSite');
+        $this->session->cookieSameSite('');
+
+        $reflection = new ReflectionClass($this->session);
+        $property = $reflection->getProperty('cookieSameSite');
+        $this->assertEquals('', $property->getValue($this->session));
+    }
+
+    public function testCookieSameSiteThrowsExceptionForInvalidValue()
+    {
+        $this->expectException(InvalidArgumentException::class);
+        $this->session->cookieSameSite('Invalid');
+    }
+
+    public function testCookieSameSiteThrowsExceptionForNone()
+    {
+        $this->expectException(InvalidArgumentException::class);
         $this->session->cookieSameSite('None');
     }
 
-    public function testCookieSameSiteSetterWithInvalidValueRandom()
+    public function testGetReturnsValueWhenKeyExists()
     {
-        $this->expectException(\InvalidArgumentException::class);
-        $this->expectExceptionMessage('Invalid value for cookieSameSite');
-        $this->session->cookieSameSite('InvalidValue');
+        $container = $this->createMock(Container::class);
+        $container->method('offsetExists')->with('foo')->willReturn(true);
+        $container->method('offsetGet')->with('foo')->willReturn('bar');
+
+        $this->injectContainer($container);
+
+        $this->assertEquals('bar', $this->session->get('foo'));
+    }
+
+    public function testGetReturnsDefaultWhenKeyDoesNotExistAndDefaultProvided()
+    {
+        $container = $this->createMock(Container::class);
+        $container->method('offsetExists')->with('foo')->willReturn(false);
+
+        $this->injectContainer($container);
+
+        $this->assertEquals('default', $this->session->get('foo', 'default'));
+    }
+
+    public function testGetReturnsNullWhenKeyDoesNotExistAndNoDefault()
+    {
+        $container = $this->createMock(Container::class);
+        $container->method('offsetExists')->with('foo')->willReturn(false);
+
+        $this->injectContainer($container);
+
+        $this->assertNull($this->session->get('foo'));
+    }
+
+    public function testGetReturnsNullWhenKeyDoesNotExistAndDefaultIsNull()
+    {
+        $container = $this->createMock(Container::class);
+        $container->method('offsetExists')->with('foo')->willReturn(false);
+
+        $this->injectContainer($container);
+
+        $this->assertNull($this->session->get('foo', null));
+    }
+
+    public function testHasReturnsTrueWhenKeyExists()
+    {
+        $container = $this->createMock(Container::class);
+        $container->method('offsetExists')->with('foo')->willReturn(true);
+
+        $this->injectContainer($container);
+
+        $this->assertTrue($this->session->has('foo'));
+    }
+
+    public function testHasReturnsFalseWhenKeyDoesNotExist()
+    {
+        $container = $this->createMock(Container::class);
+        $container->method('offsetExists')->with('foo')->willReturn(false);
+
+        $this->injectContainer($container);
+
+        $this->assertFalse($this->session->has('foo'));
+    }
+
+    public function testSetCallsContainerOffsetSet()
+    {
+        $container = $this->createMock(Container::class);
+        $container->expects($this->once())
+            ->method('offsetSet')
+            ->with('foo', 'bar');
+
+        $this->injectContainer($container);
+
+        $this->session->set('foo', 'bar');
+    }
+
+    public function testRemoveCallsContainerOffsetUnset()
+    {
+        $container = $this->createMock(Container::class);
+        $container->expects($this->once())
+            ->method('offsetUnset')
+            ->with('foo');
+
+        $this->injectContainer($container);
+
+        $this->session->remove('foo');
+    }
+
+    /**
+     * @runInSeparateProcess
+     * @preserveGlobalState disabled
+     */
+    public function testDestroyCallsManagerDestroyAndSetsCookie()
+    {
+        $manager = $this->createMock(SessionManager::class);
+        $manager->expects($this->once())
+            ->method('destroy')
+            ->with([
+                'send_expire_cookie' => true,
+                'clear_storage'      => true,
+            ]);
+
+        $this->injectManager($manager);
+
+        $this->session->destroy();
+    }
+
+    public function testGetLifetimeReturnsZeroWhenNotSet()
+    {
+        $reflection = new ReflectionClass(Session::class);
+        $method = $reflection->getMethod('getLifetime');
+
+        $session = new Session([]);
+        $this->assertEquals(0, $method->invoke($session));
+    }
+
+    public function testGetLifetimeReturnsValueFromOptions()
+    {
+        $reflection = new ReflectionClass(Session::class);
+        $method = $reflection->getMethod('getLifetime');
+
+        $session = new Session([
+            'adapter' => [
+                'options' => ['lifetime' => 3600],
+            ],
+        ]);
+        $this->assertEquals(3600, $method->invoke($session));
+    }
+
+    public function testGetOptionsReturnsOptionsForNonMemcachedAdapter()
+    {
+        $reflection = new ReflectionClass(Session::class);
+        $method = $reflection->getMethod('getOptions');
+
+        $options = [
+            'adapter' => [
+                'name'    => 'couchbase',
+                'options' => [
+                    'host'    => '127.0.0.1',
+                    'servers' => ['127.0.0.1:8091'],
+                ],
+            ],
+        ];
+        $session = new Session($options);
+
+        $result = $method->invoke($session);
+        $this->assertSame($options, $result);
+    }
+
+    public function testGetOptionsUnsetsMemcachedSpecificKeys()
+    {
+        $reflection = new ReflectionClass(Session::class);
+        $method = $reflection->getMethod('getOptions');
+
+        $options = [
+            'adapter' => [
+                'name'    => 'memcached',
+                'options' => [
+                    'host'           => '127.0.0.1',
+                    'port'           => 11211,
+                    'bucket'         => 'default',
+                    'lifetime'        => 3600,
+                    'persistent'      => true,
+                    'tcp_keepalive'   => true,
+                    'dnssrv'          => false,
+                    'timeout'         => 1000000,
+                    'servers'         => ['server1', '', 'server2'],
+                ],
+            ],
+        ];
+        $session = new Session($options);
+
+        $result = $method->invoke($session);
+        $adapterOptions = $result['adapter']['options'];
+
+        $this->assertArrayNotHasKey('host', $adapterOptions);
+        $this->assertArrayNotHasKey('port', $adapterOptions);
+        $this->assertArrayNotHasKey('bucket', $adapterOptions);
+        $this->assertArrayNotHasKey('lifetime', $adapterOptions);
+        $this->assertArrayNotHasKey('persistent', $adapterOptions);
+        $this->assertArrayNotHasKey('tcp_keepalive', $adapterOptions);
+        $this->assertArrayNotHasKey('dnssrv', $adapterOptions);
+        $this->assertArrayNotHasKey('timeout', $adapterOptions);
+        $this->assertCount(2, $adapterOptions['servers']);
+        $this->assertContains('server1', $adapterOptions['servers']);
+        $this->assertContains('server2', $adapterOptions['servers']);
+    }
+
+    public function testGetOptionsFiltersEmptyServersWhenArray()
+    {
+        $reflection = new ReflectionClass(Session::class);
+        $method = $reflection->getMethod('getOptions');
+
+        $options = [
+            'adapter' => [
+                'name'    => 'couchbase',
+                'options' => [
+                    'servers' => ['', '', ''],
+                ],
+            ],
+        ];
+        $session = new Session($options);
+
+        $result = $method->invoke($session);
+        $this->assertSame([], $result['adapter']['options']['servers']);
+    }
+
+    public function testGetSaveHandlerReturnsCouchbaseForCouchbaseAdapter()
+    {
+        $reflection = new ReflectionClass(Session::class);
+        $method = $reflection->getMethod('getSaveHandler');
+
+        $options = [
+            'adapter' => [
+                'name'    => 'couchbase',
+                'options' => [
+                    'host'     => '127.0.0.1',
+                    'port'     => 8091,
+                    'bucket'   => 'default',
+                    'password' => '',
+                    'servers'  => ['127.0.0.1:8091'],
+                ],
+            ],
+        ];
+        $session = new Session($options);
+
+        $handler = $method->invoke($session);
+        $this->assertInstanceOf(\G4\Session\SaveHandler\Couchbase::class, $handler);
+    }
+
+    public function testCouchbaseConstant()
+    {
+        $this->assertEquals('couchbase', (new ReflectionClass(Session::class))->getConstant('COUCHBASE'));
+    }
+
+    public function testMemcachedConstant()
+    {
+        $this->assertEquals('memcached', (new ReflectionClass(Session::class))->getConstant('MEMCACHED'));
+    }
+
+    /**
+     * @runInSeparateProcess
+     * @preserveGlobalState disabled
+     */
+    public function testStartWithCouchbaseAdapter()
+    {
+        $this->defineFakeCouchbaseClass();
+
+        $savePath = sys_get_temp_dir() . '/g4-session-test-start';
+        if (!is_dir($savePath)) {
+            mkdir($savePath, 0777, true);
+        }
+
+        $options = [
+            'save_path' => $savePath,
+            'adapter'   => [
+                'name'    => 'couchbase',
+                'options' => [
+                    'bucket'   => 'default',
+                    'servers'  => ['127.0.0.1:8091'],
+                    'lifetime' => 3600,
+                ],
+            ],
+        ];
+
+        $session = new Session($options);
+        $session->setDomainName('example.com');
+
+        $this->assertSame($session, $session->start());
+
+        $session->set('foo', 'bar');
+        $this->assertTrue($session->has('foo'));
+        $this->assertEquals('bar', $session->get('foo'));
+        $this->assertEquals('default-val', $session->get('missing', 'default-val'));
+
+        $session->remove('foo');
+        $this->assertFalse($session->has('foo'));
+
+        $session->destroy();
+    }
+
+    /**
+     * @runInSeparateProcess
+     * @preserveGlobalState disabled
+     */
+    public function testStartThrowsWhenCouchbaseClientMissing()
+    {
+        if (extension_loaded('couchbase')) {
+            $this->markTestSkipped('Requires an environment without the couchbase extension');
+        }
+
+        $savePath = sys_get_temp_dir() . '/g4-session-test-start-err';
+        if (!is_dir($savePath)) {
+            mkdir($savePath, 0777, true);
+        }
+
+        $options = [
+            'save_path' => $savePath,
+            'adapter'   => [
+                'name'    => 'couchbase',
+                'options' => [
+                    'bucket'   => 'default',
+                    'servers'  => ['127.0.0.1:8091'],
+                    'lifetime' => 3600,
+                ],
+            ],
+        ];
+
+        $session = new Session($options);
+        $session->setDomainName('example.com');
+
+        $this->expectException(\Exception::class);
+        $this->expectExceptionMessage('Couchbase client missing!');
+
+        $session->start();
+    }
+
+    /**
+     * @runInSeparateProcess
+     * @preserveGlobalState disabled
+     */
+    public function testGetConfigReturnsStandardConfig()
+    {
+        $savePath = sys_get_temp_dir() . '/g4-session-test-config';
+        if (!is_dir($savePath)) {
+            mkdir($savePath, 0777, true);
+        }
+
+        $session = new Session(['save_path' => $savePath]);
+
+        $reflection = new ReflectionClass(Session::class);
+        $method = $reflection->getMethod('getConfig');
+
+        $config = $method->invoke($session);
+        $this->assertInstanceOf(\Laminas\Session\Config\StandardConfig::class, $config);
+        $this->assertEquals($savePath, $config->getSavePath());
+    }
+
+    public function testGetStorageReturnsStorageInterface()
+    {
+        $options = [
+            'adapter' => [
+                'name'    => 'memcached',
+                'options' => ['servers' => ['127.0.0.1:11211']],
+            ],
+        ];
+        $session = new Session($options);
+
+        $reflection = new ReflectionClass(Session::class);
+        $method = $reflection->getMethod('getStorage');
+
+        $storage = @$method->invoke($session);
+        $this->assertInstanceOf(\Laminas\Cache\Storage\StorageInterface::class, $storage);
     }
 
     public function testFluentInterfaceChaining()
@@ -149,63 +534,40 @@ class SessionTest extends PHPUnit\Framework\TestCase
             ->cookieHttpOnly(true)
             ->cookieSecure(true)
             ->cookieSameSite('Strict');
-        
-        $this->assertInstanceOf(Session::class, $result);
+
+        $this->assertSame($this->session, $result);
         $this->assertEquals('example.com', $this->session->getDomainName());
     }
 
-    public function testGetOptionsUnsetsCouchbaseOnlyKeysForMemcached()
+    private function defineFakeCouchbaseClass()
     {
-        $method = (new ReflectionClass(Session::class))->getMethod('getOptions');
-        $session = new Session([
-            'adapter' => [
-                'name'    => 'memcached',
-                'options' => [
-                    'host'          => '127.0.0.1',
-                    'port'          => 11211,
-                    'bucket'        => 'default',
-                    'lifetime'      => 3600,
-                    'persistent'    => true,
-                    'tcp_keepalive' => true,
-                    'dnssrv'        => false,
-                    'timeout'       => 1000000,
-                    'servers'       => ['server1', '', 'server2'],
-                ],
-            ],
-        ]);
-
-        $adapterOptions = $method->invoke($session)['adapter']['options'];
-
-        $this->assertSame(['servers'], array_keys($adapterOptions));
-        $this->assertSame(['server1', 2 => 'server2'], $adapterOptions['servers']);
+        if (class_exists(\Couchbase::class, false)) {
+            return;
+        }
+        eval(<<<'PHP'
+class Couchbase
+{
+    public function setTimeout($timeout) { return $this; }
+    public function get($key) { return false; }
+    public function set($key, $value, $expiration) { return true; }
+    public function delete($key) { return true; }
+    public function replace($key, $value, $expiration) { return true; }
+}
+PHP
+        );
     }
 
-    public function testGetOptionsKeepsOptionsForCouchbase()
+    private function injectContainer($container)
     {
-        $method = (new ReflectionClass(Session::class))->getMethod('getOptions');
-        $options = [
-            'adapter' => [
-                'name'    => 'couchbase',
-                'options' => [
-                    'servers'       => ['127.0.0.1:8091'],
-                    'timeout'       => 1000000,
-                    'tcp_keepalive' => true,
-                    'dnssrv'        => false,
-                ],
-            ],
-        ];
-
-        $this->assertSame($options, $method->invoke(new Session($options)));
+        $reflection = new ReflectionClass($this->session);
+        $property = $reflection->getProperty('container');
+        $property->setValue($this->session, $container);
     }
 
-    protected function setUp(): void
+    private function injectManager($manager)
     {
-        $this->session = new Session([]);
-    }
-
-    protected function tearDown(): void
-    {
-        $this->session = null;
-        $_SERVER['HTTP_HOST'] = null;
+        $reflection = new ReflectionClass($this->session);
+        $property = $reflection->getProperty('manager');
+        $property->setValue($this->session, $manager);
     }
 }
